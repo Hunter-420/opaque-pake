@@ -198,7 +198,6 @@ func (o *Opaque) AkeServerRespond(clientPkStatic, clientPkEphemeral, serverPkSta
     dh3 := o.Curve.ScalarMult(o.serverSkStatic, clientPkEphemeral)
     sharedSecret := append(o.Curve.PointToBytes(dh1), append(o.Curve.PointToBytes(dh2), o.Curve.PointToBytes(dh3)...)...)
     sessionKey := o.deriveSessionKey(sharedSecret)
-    // Ensure serverSkEphemeral is used by returning it
     return serverSkEphemeral, serverPkEphemeral, sessionKey, nil
 }
 
