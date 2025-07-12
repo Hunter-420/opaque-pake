@@ -193,13 +193,13 @@ func (o *Opaque) AkeServerRespond(clientPkStatic, clientPkEphemeral, serverPkSta
     if err != nil {
         return nil, nil, nil, err
     }
-    // Explicitly assign to a temporary variable to ensure compiler recognizes usage
-    sk := serverSkEphemeral
+    // Explicitly use serverSkEphemeral to satisfy compiler
+    _ = o.Curve.ScalarToBytes(serverSkEphemeral) // Convert to bytes to ensure usage
     // Compute ephemeral public key
-    serverPkEphemeral := o.Curve.BasepointMult(sk)
+    serverPkEphemeral := o.Curve.BasepointMult(serverSkEphemeral)
     // Compute Diffie-Hellman components
-    dh1 := o.Curve.ScalarMult(sk, clientPkStatic)
-    dh2 := o.Curve.ScalarMult(sk, clientPkEphemeral)
+    dh1 := o.Curve.ScalarMult(serverSkEphemeral, clientPkStatic)
+    dh2 := o.Curve.ScalarMult(serverSkEphemeral, clientPkEphemeral)
     dh3 := o.Curve.ScalarMult(o.serverSkStatic, clientPkEphemeral)
     // Derive shared secret
     sharedSecret := append(o.Curve.PointToBytes(dh1), append(o.Curve.PointToBytes(dh2), o.Curve.PointToBytes(dh3)...)...)
