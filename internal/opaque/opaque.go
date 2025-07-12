@@ -188,18 +188,23 @@ func (o *Opaque) AkeServerRespond(clientPkStatic, clientPkEphemeral, serverPkSta
     if !o.Curve.ValidatePoint(clientPkStatic) || !o.Curve.ValidatePoint(clientPkEphemeral) {
         return nil, nil, nil, errors.New("invalid client public key")
     }
+    // Generate ephemeral private key
     serverSkEphemeral, err := o.Curve.RandomScalar(rng)
     if err != nil {
         return nil, nil, nil, err
     }
-    serverPkEphemeral := o.Curve.BasepointMult(serverSkEphemeral)
-    dh1 := o.Curve.ScalarMult(serverSkEphemeral, clientPkStatic)
-    dh2 := o.Curve.ScalarMult(serverSkEphemeral, clientPkEphemeral)
+    // Explicitly assign to a temporary variable to ensure compiler recognizes usage
+    sk := serverSkEphemeral
+    // Compute ephemeral public key
+    serverPkEphemeral := o.Curve.BasepointMult(sk)
+    // Compute Diffie-Hellman components
+    dh1 := o.Curve.ScalarMult(sk, clientPkStatic)
+    dh2 := o.Curve.ScalarMult(sk, clientPkEphemeral)
     dh3 := o.Curve.ScalarMult(o.serverSkStatic, clientPkEphemeral)
+    // Derive shared secret
     sharedSecret := append(o.Curve.PointToBytes(dh1), append(o.Curve.PointToBytes(dh2), o.Curve.PointToBytes(dh3)...)...)
     sessionKey := o.deriveSessionKey(sharedSecret)
-    // Explicitly use serverSkEphemeral to satisfy compiler
-    _ = serverSkEphemeral // Workaround for false positive unused variable warning
+    // Return ephemeral private key, public key, and session key
     return serverSkEphemeral, serverPkEphemeral, sessionKey, nil
 }
 
