@@ -1,4 +1,4 @@
-module opaque-pake
+module github.com/hunter-420/opaque-pake
 
 go 1.20
 

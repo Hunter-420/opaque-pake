@@ -6,7 +6,6 @@ import (
     "crypto/cipher"
     "crypto/ecdsa"
     "crypto/elliptic"
-    "crypto/rand"
     "crypto/sha256"
     "errors"
     "github.com/gtank/ristretto255"
@@ -32,16 +31,23 @@ type RistrettoCurve struct{}
 
 func (RistrettoCurve) RandomScalar(rng io.Reader) (interface{}, error) {
     scalar := ristretto255.NewScalar()
-    return scalar.Random(rng), nil
+    _, err := io.ReadFull(rng, scalar.Encode([]byte{}))
+    if err != nil {
+        return nil, err
+    }
+    return scalar, nil
 }
 
 func (RistrettoCurve) ScalarMult(scalar, point interface{}) interface{} {
-    return point.(*ristretto255.Element).Multiply(scalar.(*ristretto255.Scalar))
+    element := ristretto255.NewElement()
+    element.ScalarMult(scalar.(*ristretto255.Scalar), point.(*ristretto255.Element))
+    return element
 }
 
 func (RistrettoCurve) BasepointMult(scalar interface{}) interface{} {
     element := ristretto255.NewElement()
-    return element.Mul(scalar.(*ristretto255.Scalar), ristretto255.NewElement().Base())
+    element.ScalarMultBase(scalar.(*ristretto255.Scalar))
+    return element
 }
 
 func (RistrettoCurve) HashToScalar(data []byte) interface{} {
@@ -60,7 +66,9 @@ func (RistrettoCurve) ScalarToBytes(scalar interface{}) []byte {
 }
 
 func (RistrettoCurve) ScalarInvert(scalar interface{}) interface{} {
-    return scalar.(*ristretto255.Scalar).Invert()
+    inverted := ristretto255.NewScalar()
+    inverted.Invert(scalar.(*ristretto255.Scalar))
+    return inverted
 }
 
 func (RistrettoCurve) ValidatePoint(point interface{}) bool {
@@ -319,5 +327,7 @@ func (o *Opaque) LoginClientFinalize(r, clientSkStatic, clientSkEphemeral, evalu
     if !bytes.Equal(serverPublicKey, o.Curve.PointToBytes(o.serverPkStatic)) {
         return nil, nil, nil, errors.New("server authentication failed")
     }
+    // Use clientIdentity to log or verify identity (example)
+    _ = clientIdentity // Placeholder to avoid unused variable error
     return privateKey, sessionKey, o.deriveSessionKey(o.Curve.PointToBytes(hardenedKey)), nil
 }
