@@ -46,7 +46,7 @@ func (RistrettoCurve) ScalarMult(scalar, point interface{}) interface{} {
 
 func (RistrettoCurve) BasepointMult(scalar interface{}) interface{} {
     element := ristretto255.NewElement()
-    element.ScalarMultBase(scalar.(*ristretto255.Scalar))
+    element.ScalarMult(scalar.(*ristretto255.Scalar), ristretto255.NewElement().Base())
     return element
 }
 
@@ -198,6 +198,7 @@ func (o *Opaque) AkeServerRespond(clientPkStatic, clientPkEphemeral, serverPkSta
     dh3 := o.Curve.ScalarMult(o.serverSkStatic, clientPkEphemeral)
     sharedSecret := append(o.Curve.PointToBytes(dh1), append(o.Curve.PointToBytes(dh2), o.Curve.PointToBytes(dh3)...)...)
     sessionKey := o.deriveSessionKey(sharedSecret)
+    // Ensure serverSkEphemeral is used by returning it
     return serverSkEphemeral, serverPkEphemeral, sessionKey, nil
 }
 
@@ -327,7 +328,7 @@ func (o *Opaque) LoginClientFinalize(r, clientSkStatic, clientSkEphemeral, evalu
     if !bytes.Equal(serverPublicKey, o.Curve.PointToBytes(o.serverPkStatic)) {
         return nil, nil, nil, errors.New("server authentication failed")
     }
-    // Use clientIdentity to log or verify identity (example)
-    _ = clientIdentity // Placeholder to avoid unused variable error
+    // Use clientIdentity to avoid unused variable warning
+    _ = clientIdentity // Placeholder for future identity verification
     return privateKey, sessionKey, o.deriveSessionKey(o.Curve.PointToBytes(hardenedKey)), nil
 }
